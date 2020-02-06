@@ -1,6 +1,6 @@
 module.exports = {
 
-  title: 'Vue Admin Template',
+  title: '临床研究生论文过程化管理',
 
   /**
    * @type {boolean} true | false

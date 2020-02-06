@@ -1,18 +1,19 @@
 <template>
   <div class="dashboard-container">
-    <div class="dashboard-text">name: {{ name }}</div>
+    <!-- <div class="dashboard-text">name: {{ name }}</div> -->
+    <adminDashboard />
   </div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex'
+import adminDashboard from './admin'
 
 export default {
   name: 'Dashboard',
+  components: { adminDashboard },
   computed: {
-    ...mapGetters([
-      'name'
-    ])
+    ...mapGetters(['name'])
   }
 }
 </script>

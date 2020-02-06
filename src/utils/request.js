@@ -10,6 +10,8 @@ const service = axios.create({
   timeout: 5000 // request timeout
 })
 
+service.defaults.baseURL = 'http://localhost:8080'
+
 // request interceptor
 service.interceptors.request.use(
   config => {

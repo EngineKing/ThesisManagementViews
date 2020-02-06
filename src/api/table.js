@@ -1,8 +1,16 @@
 import request from '@/utils/request'
 
-export function getList(params) {
+export function getUserList(params) {
   return request({
-    url: '/table/list',
+    url: '/table/userList',
+    method: 'get',
+    params
+  })
+}
+
+export function getDepartmentList(params) {
+  return request({
+    url: 'table/departmentList',
     method: 'get',
     params
   })
