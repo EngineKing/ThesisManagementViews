@@ -1,7 +1,10 @@
 <template>
   <div class="app-container">
     <div>
-      <el-input v-model="listQuery.name" clearable placeholder="请输入角色名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.name" clearable placeholder="请输入专家组名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-select v-model="listQuery.teacherId" placeholder="请选择组长" clearable style="width: 160px" class="filter-item">
+        <el-option v-for="item in teacherOptions" :key="item.name" :label="item.name" :value="item.id" />
+      </el-select>
       <el-button
         v-waves
         class="filter-item"
@@ -17,6 +20,13 @@
         icon="el-icon-edit"
         @click="handleCreate"
       >新增</el-button>
+      <el-button
+        class="filter-item"
+        style="margin-left: 10px;"
+        type="primary"
+        icon="el-icon-menu"
+        @click="handleAssign"
+      >分配学生</el-button>
     </div>
     <el-table
       v-loading="listLoading"
@@ -31,17 +41,17 @@
       <el-table-column align="center" label="ID" width="95">
         <template slot-scope="scope">{{ scope.$index + (listQuery.page - 1) * listQuery.limit + 1 }}</template>
       </el-table-column>
-      <el-table-column label="角色名称" width="240" align="center">
+      <el-table-column label="名称" min-width="240" align="center">
         <template slot-scope="scope">{{ scope.row.name }}</template>
       </el-table-column>
-      <el-table-column class-name="status-col" label="角色描述" min-width="300" align="center">
-        <template slot-scope="scope">{{ scope.row.description }}</template>
+      <el-table-column class-name="status-col" label="组长" min-width="240" align="center">
+        <template slot-scope="scope">{{ scope.row.teacher.name }}</template>
       </el-table-column>
       <el-table-column align="center" label="操作" min-width="200px">
         <template slot-scope="scope">
           <el-button type="primary" size="small" @click="handleUpdate(scope.row)">编辑</el-button>
-          <el-button type="success" size="small" @click="handleAssign(scope.row)">分配权限</el-button>
-          <el-button type="danger" size="small" @click="deleteRole(scope)">删除</el-button>
+          <el-button type="success" size="small" @click="handleAssign(scope.row)">分配成员</el-button>
+          <el-button type="danger" size="small" @click="deleteExpertGroup(scope)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -60,14 +70,31 @@
         :rules="rules"
         :model="temp"
         label-position="left"
-        label-width="80px"
+        label-width="100px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="角色名称" prop="name">
-          <el-input v-model="temp.name" />
+        <el-form-item label="专家组名称" prop="name">
+          <el-input v-model="temp.name" clearable />
         </el-form-item>
-        <el-form-item label="角色描述" prop="description">
-          <el-input v-model="temp.description" />
+        <el-form-item label="组长" prop="teacherId">
+          <el-select v-model="temp.teacherId" clearable class="filter-item" placeholder="请选择" @change="change()">
+            <el-option
+              v-for="item in teacherOptions"
+              :key="item.name"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-select v-model="temp.status" clearable class="filter-item" placeholder="请选择" @change="change()">
+            <el-option
+              v-for="item in statusOptions"
+              :key="item.value"
+              :label="item.value"
+              :value="item.key"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -81,6 +108,7 @@
 <script>
 import waves from '@/directive/waves' // waves directive
 import Pagination from '@/components/Pagination'
+import { select } from '@/utils/formValidator.js'
 
 export default {
   components: { Pagination },
@@ -93,13 +121,17 @@ export default {
       listQuery: {
         page: 1,
         limit: 10,
-        name: ''
+        name: '',
+        teacherId: undefined
       },
+      statusOptions: [{ key: 0, value: '正常' }, { key: 1, value: '冻结' }],
       temp: {
         id: 0,
         name: '',
-        description: ''
+        teacherId: undefined,
+        status: 0
       },
+      teacherOptions: [],
       dialogFormVisible: false,
       dialogStatus: '',
       textMap: {
@@ -109,18 +141,27 @@ export default {
       rules: {
         name: [
           { required: true, message: '名称不能为空', trigger: 'blur' }
+        ],
+        teacherId: [
+          { required: true, message: '请选择专家组组长', trigger: 'change' },
+          { validator: select, message: '请选择专家组组长', trigger: 'change' }
+        ],
+        status: [
+          { required: true, message: '请选择状态', trigger: 'change' },
+          { validator: select, message: '请选择状态', trigger: 'change' }
         ]
       }
     }
   },
   created() {
     this.getList()
+    this.getLeaders()
   },
   methods: {
     getList() {
       this.axios({
         method: 'post',
-        url: '/role/pageQuery',
+        url: '/expertGroup/pageQuery',
         data: {
           'curPage': this.listQuery.page,
           'limit': this.listQuery.limit
@@ -128,29 +169,43 @@ export default {
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.rolePage.list
-          this.total = res.rolePage.total
+          this.list = res.expertGroupPage.list
+          this.total = res.expertGroupPage.total
         } else {
-          this.$message.error('获取角色信息错误')
+          this.$message.error('获取专家组信息错误')
+        }
+      })
+    },
+    getLeaders() {
+      this.axios({
+        method: 'get',
+        url: '/expertGroup/getLeaders'
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.teacherOptions = res.leaders
+        } else {
+          this.$message.error('获取组长错误')
         }
       })
     },
     handleFilter() {
       this.axios({
         method: 'post',
-        url: '/role/pageQuery',
+        url: '/expertGroup/pageQuery',
         data: {
           'name': this.listQuery.name,
+          'teacherId': this.listQuery.teacherId,
           'curPage': this.listQuery.page,
           'limit': this.listQuery.limit
         }
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.rolePage.list
-          this.total = res.rolePage.total
+          this.list = res.expertGroupPage.list
+          this.total = res.expertGroupPage.total
         } else {
-          this.$message.error('获取角色信息错误')
+          this.$message.error('获取专家组信息错误')
         }
       })
     },
@@ -158,7 +213,8 @@ export default {
       this.temp = {
         id: 0,
         name: '',
-        description: ''
+        teacherId: undefined,
+        status: 0
       }
     },
     handleCreate() {
@@ -171,12 +227,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/role/add',
+            url: '/expertGroup/add',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('新增角色成功')
+              this.$message.success('新增专家组成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -190,6 +246,7 @@ export default {
     },
     handleUpdate(row) {
       this.temp = Object.assign({}, row) // copy obj
+      this.temp.teacherId = row.teacher.id
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
     },
@@ -198,12 +255,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/role/update',
+            url: '/expertGroup/update',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('编辑角色成功')
+              this.$message.success('编辑专家组成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -215,7 +272,7 @@ export default {
         }
       })
     },
-    deleteRole(scope) {
+    deleteExpertGroup(scope) {
       this.$confirm('是否要继续此操作?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -223,14 +280,14 @@ export default {
       }).then(() => {
         this.axios({
           method: 'post',
-          url: '/role/delete',
+          url: '/expertGroup/delete',
           data: this.qs.stringify({
             'id': scope.row.id
           })
         }).then((response) => {
           const res = response.data
           if (res.code === 200) {
-            this.$message.success('删除角色成功')
+            this.$message.success('删除专家组成功')
             this.getList()
           } else {
             this.$message.error(res.msg)
@@ -239,6 +296,9 @@ export default {
           console.log(error)
         })
       })
+    },
+    handleAssign() {
+      // todo: 利用树形结构 分配专家组成员
     },
     change() {
       this.$forceUpdate()

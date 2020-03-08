@@ -1,91 +1,247 @@
 <template>
   <div class="app-container">
     <div>
-      <el-button type="primary" @click="handleAddRole">New Department</el-button>
-      <DepartmentNameOption v-model="deparmentName" />
-      <PDepartmentOption v-model="pDepartment" />
-      <el-button type="primary" round style="margin-left:20px;padding:10px 20px 10px 10px;">
-        <svg-icon icon-class="search" />>
-        搜索
-      </el-button>
+      <el-input v-model="listQuery.name" clearable placeholder="请输入角色名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-button
+        v-waves
+        class="filter-item"
+        type="primary"
+        style="margin-left:10px;"
+        icon="el-icon-search"
+        @click="handleFilter"
+      >搜索</el-button>
+      <el-button
+        class="filter-item"
+        style="margin-left: 10px;"
+        type="primary"
+        icon="el-icon-edit"
+        @click="handleCreate"
+      >新增</el-button>
     </div>
-    <!-- <el-table
+    <el-table
       v-loading="listLoading"
       :data="list"
-      style="width: 100%:margin-top: 30px;"
+      style="width: 100%;margin-top: 20px;"
       element-loading-text="Loading"
       border
       fit
       highlight-current-row
     >
-    </el-table> -->
-
-    <el-table :data="list" style="width: 100%;margin-top:30px;" border>
+      <el-table-column type="selection" align="center" />
       <el-table-column align="center" label="ID" width="95">
-        <template slot-scope="scope">
-          {{ scope.$index }}
-        </template>
+        <template slot-scope="scope">{{ scope.$index + (listQuery.page - 1) * listQuery.limit + 1 }}</template>
       </el-table-column>
-      <el-table-column label="DepartmentName" width="240" align="center">
-        <template slot-scope="scope">
-          {{ scope.row.departmentName }}
-        </template>
+      <el-table-column label="角色名称" width="240" align="center">
+        <template slot-scope="scope">{{ scope.row.name }}</template>
       </el-table-column>
-      <el-table-column class-name="status-col" label="Parent_Department" width="240" align="center">
-        <template slot-scope="scope">
-          <el-tag :type="scope.row.pDepartment | pDepartmentFilter">{{ scope.row.pDepartment }}</el-tag>
-        </template>
+      <el-table-column class-name="status-col" label="角色描述" min-width="300" align="center">
+        <template slot-scope="scope">{{ scope.row.description }}</template>
       </el-table-column>
-      <el-table-column label="Description" align="center">
+      <el-table-column align="center" label="操作" min-width="200px">
         <template slot-scope="scope">
-          {{ scope.row.description }}
-        </template>
-      </el-table-column>
-      <el-table-column align="center" label="Operations" width="280">
-        <template slot-scope="scope">
-          <el-button type="primary" size="small" @click="handleEdit(scope)">Edit</el-button>
-          <el-button type="info" size="small" @click="handleEdit(scope)">Detail</el-button>
-          <el-button type="danger" size="small" @click="handleDelete(scope)">Delete</el-button>
+          <el-button type="primary" size="small" @click="handleUpdate(scope.row)">编辑</el-button>
+          <el-button type="success" size="small" @click="handleAssign(scope.row)">分配权限</el-button>
+          <el-button type="danger" size="small" @click="deleteRole(scope)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <pagination
+      v-show="total>0"
+      :total="total"
+      :page.sync="listQuery.page"
+      :limit.sync="listQuery.limit"
+      @pagination="handleFilter"
+    />
+
+    <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+      <el-form
+        ref="dataForm"
+        :rules="rules"
+        :model="temp"
+        label-position="left"
+        label-width="80px"
+        style="width: 400px; margin-left:50px;"
+      >
+        <el-form-item label="角色名称" prop="name">
+          <el-input v-model="temp.name" />
+        </el-form-item>
+        <el-form-item label="角色描述" prop="description">
+          <el-input v-model="temp.description" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getDepartmentList } from '@/api/table'
-
-import DepartmentNameOption from './components/DepartmentNameOption'
-import PDepartmentOption from './components/PDepartmentOption'
+import waves from '@/directive/waves' // waves directive
+import Pagination from '@/components/Pagination'
 
 export default {
-  components: { DepartmentNameOption, PDepartmentOption },
-  filters: {
-    pDepartmentFilter(status) {
-      const pDepartmentMap = {
-        First_Clinical: 'primary',
-        Second_Clinical: 'success',
-        Third_Clinical: 'warning'
-      }
-      return pDepartmentMap[status]
-    }
-  },
+  components: { Pagination },
+  directives: { waves },
   data() {
     return {
-      list: null,
-      listLoading: true
+      list: [],
+      listLoading: false,
+      total: 0,
+      listQuery: {
+        page: 1,
+        limit: 10,
+        name: ''
+      },
+      temp: {
+        id: 0,
+        name: '',
+        description: ''
+      },
+      dialogFormVisible: false,
+      dialogStatus: '',
+      textMap: {
+        update: '编辑',
+        create: '新增'
+      },
+      rules: {
+        name: [
+          { required: true, message: '名称不能为空', trigger: 'blur' }
+        ]
+      }
     }
   },
   created() {
-    this.fetchData()
+    this.getList()
   },
   methods: {
-    fetchData() {
-      this.listLoading = true
-      getDepartmentList().then(response => {
-        this.list = response.departmentData.items
-        this.listLoading = false
+    getList() {
+      this.axios({
+        method: 'post',
+        url: '/role/pageQuery',
+        data: {
+          'curPage': this.listQuery.page,
+          'limit': this.listQuery.limit
+        }
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.list = res.rolePage.list
+          this.total = res.rolePage.total
+        } else {
+          this.$message.error('获取角色信息错误')
+        }
       })
+    },
+    handleFilter() {
+      this.axios({
+        method: 'post',
+        url: '/role/pageQuery',
+        data: {
+          'name': this.listQuery.name,
+          'curPage': this.listQuery.page,
+          'limit': this.listQuery.limit
+        }
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.list = res.rolePage.list
+          this.total = res.rolePage.total
+        } else {
+          this.$message.error('获取角色信息错误')
+        }
+      })
+    },
+    resetTemp() {
+      this.temp = {
+        id: 0,
+        name: '',
+        description: ''
+      }
+    },
+    handleCreate() {
+      this.resetTemp()
+      this.dialogStatus = 'create'
+      this.dialogFormVisible = true
+    },
+    createData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          this.axios({
+            method: 'post',
+            url: '/role/add',
+            data: this.temp
+          }).then((response) => {
+            const res = response.data
+            if (res.code === 200) {
+              this.$message.success('新增角色成功')
+              this.dialogFormVisible = false
+              this.getList()
+            } else {
+              this.$message.error(res.msg)
+            }
+          }).catch((error) => {
+            console.log(error)
+          })
+        }
+      })
+    },
+    handleUpdate(row) {
+      this.temp = Object.assign({}, row) // copy obj
+      this.dialogStatus = 'update'
+      this.dialogFormVisible = true
+    },
+    updateData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          this.axios({
+            method: 'post',
+            url: '/role/update',
+            data: this.temp
+          }).then((response) => {
+            const res = response.data
+            if (res.code === 200) {
+              this.$message.success('编辑角色成功')
+              this.dialogFormVisible = false
+              this.getList()
+            } else {
+              this.$message.error(res.msg)
+            }
+          }).catch((error) => {
+            console.log(error)
+          })
+        }
+      })
+    },
+    deleteRole(scope) {
+      this.$confirm('是否要继续此操作?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        this.axios({
+          method: 'post',
+          url: '/role/delete',
+          data: this.qs.stringify({
+            'id': scope.row.id
+          })
+        }).then((response) => {
+          const res = response.data
+          if (res.code === 200) {
+            this.$message.success('删除角色成功')
+            this.getList()
+          } else {
+            this.$message.error(res.msg)
+          }
+        }).catch((error) => {
+          console.log(error)
+        })
+      })
+    },
+    change() {
+      this.$forceUpdate()
     }
   }
 }

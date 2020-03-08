@@ -42,6 +42,16 @@ Vue.use(ElementUI, { locale })
 // 如果想要中文版 element-ui，按如下方式声明
 // Vue.use(ElementUI)
 
+axios.interceptors.request.use(function(config) {
+  const userId = 55
+  if (userId) {
+    config.headers.userId = userId
+    return config
+  }
+}, function(error) {
+  return Promise.reject(error)
+})
+
 Vue.config.productionTip = false
 
 new Vue({

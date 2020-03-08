@@ -7,29 +7,15 @@
         placeholder="请输入标题"
         style="width: 200px;"
         class="filter-item"
-        @keyup.enter.native="handleFilter"
+        @keyup.enter.native="getList"
       />
-      <el-select
-        v-model="listQuery.type"
-        placeholder="请选择类型"
-        clearable
-        style="width: 180px;"
-        class="filter-item"
-      >
-        <el-option
-          v-for="item in typeOptions"
-          :key="item.value"
-          :label="item.value"
-          :value="item.key"
-        />
-      </el-select>
       <el-button
         v-waves
         class="filter-item"
         type="primary"
         style="margin-left:10px;"
         icon="el-icon-search"
-        @click="handleFilter"
+        @click="getList"
       >搜索</el-button>
     </div>
     <el-table
@@ -43,7 +29,7 @@
     >
       <el-table-column type="selection" align="center" />
       <el-table-column align="center" label="ID" width="80">
-        <template slot-scope="scope">{{ scope.$index + (listQuery.page - 1) * listQuery.limit + 1 }}</template>
+        <template slot-scope="scope">{{ scope.$index + 1 }}</template>
       </el-table-column>
       <el-table-column label="标题" min-width="160" align="center">
         <template slot-scope="scope">{{ scope.row.title }}</template>
@@ -63,54 +49,51 @@
           <span>{{ scope.row.endTime | formatDate }}</span>
         </template>
       </el-table-column>
-      <el-table-column align="center" label="结果截止上传时间" min-width="180">
+      <!-- <el-table-column align="center" label="结果截止上传时间" min-width="180">
         <template slot-scope="scope">
           <i class="el-icon-time" />
-          <span>{{ scope.row.resultsEndTime | formatDate }}</span>
+          <span>{{ scope.row.task.resultsEndTime | formatDate }}</span>
         </template>
-      </el-table-column>
-      <el-table-column label="类型" min-width="160" align="center">
+      </el-table-column>-->
+      <el-table-column label="类型" min-width="180" align="center">
         <template slot-scope="scope">{{ getType(scope.row.type) }}</template>
       </el-table-column>
       <el-table-column label="父任务" min-width="160" align="center">
         <template slot-scope="scope">{{ scope.row.pTask.title }}</template>
       </el-table-column>
-      <el-table-column
-        label="操作"
-        align="center"
-        min-width="260"
-        class-name="small-padding fixed-width"
-      >
-        <template slot-scope="{row}">
-          <el-button type="primary" size="small" @click="handleDownload(row)">下载附件</el-button>
-          <el-button type="success" size="small" @click="handleResult(row)">结果处理</el-button>
+      <el-table-column align="center" label="操作" min-width="250px">
+        <template slot-scope="scope">
+          <el-button type="primary" size="small" @click="handleDownload(scope.row)">下载附件</el-button>
+          <el-upload
+            ref="upload"
+            :action="uploadAction"
+            :data="formData"
+            :on-success="handleSuccess"
+            :on-error="handleError"
+            accept=".doc, .docx, .pdf, .zip, .rar, .DOC, .DOCX, .PDF, .ZIP, .RAR"
+            :before-upload="uploadBefore"
+            :auto-upload="true"
+            :show-file-list="false"
+            style="display:inline-block"
+          >
+            <el-button
+              :disabled="new Date().getTime() > scope.row.endTime"
+              style="margin-left: 10px;"
+              size="small"
+              type="success"
+              @click="handleSubmit(scope.row)"
+            >提交结果</el-button>
+          </el-upload>
         </template>
       </el-table-column>
     </el-table>
-
-    <pagination
-      v-show="total>0"
-      :total="total"
-      :page.sync="listQuery.page"
-      :limit.sync="listQuery.limit"
-      @pagination="handleFilter"
-    />
-
-    <div :if="dialogResultVisible">
-      <el-dialog title="处理结果" :visible.sync="dialogResultVisible" width="80%">
-        <StudentList :value="taskId" />
-      </el-dialog>
-    </div>
   </div>
 </template>
 
 <script>
 import waves from '@/directive/waves' // waves directive
-import Pagination from '@/components/Pagination'
-import StudentList from './components/StudentList'
 
 export default {
-  components: { Pagination, StudentList },
   directives: { waves },
   filters: {
     formatDate(date) {
@@ -130,70 +113,31 @@ export default {
       listLoading: false,
       total: 0,
       listQuery: {
-        page: 1,
-        limit: 10,
-        title: '',
-        type: undefined
+        title: ''
       },
-      typeOptions: [
-        { key: 0, value: '毕业设计任务' },
-        { key: 1, value: '开题报告任务' },
-        { key: 2, value: '实验计划任务' },
-        { key: 3, value: '论文预答辩任务' },
-        { key: 4, value: '盲评和查重任务' },
-        { key: 5, value: '论文答辩任务' },
-        { key: 6, value: '答辩后期任务' }
-      ],
-      dialogResultVisible: false,
-      taskId: 0
+      uploadAction: 'http://127.0.0.1:8080/student/submit',
+      formData: {
+        userId: 56,
+        taskId: 5
+      }
     }
   },
   created() {
     this.getList()
-    this.getAllPTasks()
   },
   methods: {
     getList() {
       this.axios({
         method: 'post',
-        url: '/task/pageQuery',
-        data: {
-          'curPage': this.listQuery.page,
-          'limit': this.listQuery.limit
-        }
+        url: '/student/query',
+        data: this.qs.stringify({
+          'userId': this.formData.userId,
+          'title': this.listQuery.title
+        })
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.taskPage.list
-          this.total = res.taskPage.total
-        } else {
-          this.$message.error('获取任务信息错误')
-        }
-      })
-    },
-    getAllPTasks() {
-      this.axios({
-        method: 'get',
-        url: '/task/getAllPTasks'
-      }).then((response) => {
-        const res = response.data
-        if (res.code === 200) {
-          this.pTaskOptions = res.pTasks
-        } else {
-          this.$message.error('获取父任务信息错误')
-        }
-      })
-    },
-    handleFilter() {
-      this.axios({
-        method: 'post',
-        url: '/task/pageQuery',
-        data: this.listQuery
-      }).then((response) => {
-        const res = response.data
-        if (res.code === 200) {
-          this.list = res.taskPage.list
-          this.total = res.taskPage.total
+          this.list = res.taskVOS
         } else {
           this.$message.error('获取任务信息错误')
         }
@@ -221,9 +165,38 @@ export default {
         this.$message.error('暂无附件')
       }
     },
-    handleResult(row) {
-      this.dialogResultVisible = true
-      this.taskId = row.id
+    uploadBefore(file) {
+      // console.log(file)
+      // this.$confirm('单文件请使用Word或者PDF类型，多文件请使用ZIP或者RAR类型?', '提示', {
+      //   confirmButtonText: '确定',
+      //   cancelButtonText: '取消',
+      //   type: 'warning'
+      // }).then(() => {
+
+      // })
+      var testmsg = file.name.substring(file.name.lastIndexOf('.') + 1)
+      const extension = testmsg === 'zip' || testmsg === 'ZIP'
+      const extension2 = testmsg === 'rar' || testmsg === 'RAR'
+      const extension3 = testmsg === 'doc' || testmsg === 'DOC' || testmsg === 'docx' || testmsg === 'DOCX'
+      const extension4 = testmsg === 'pdf' || testmsg === 'PDF'
+      if (!extension && !extension2 && !extension3 && !extension4) {
+        this.$message.error('文件类型只能是.doc,.docx,.pdf,.zip或者.rar，请重新上传')
+        return false
+      }
+      if (file.size > 1024 * 1024 * 2) {
+        this.$message.error('文件大小不能超过2M, 请重新上传!')
+        return false
+      }
+    },
+    handleSuccess(content) {
+      this.$message.success('结果提交成功')
+    },
+    handleError(content) {
+      this.$message.error('结果提交失败')
+    },
+    handleSubmit(row) {
+      this.formData.taskId = row.id
+      this.$refs.upload.submit()
     },
     getType(type) {
       var name = ''
@@ -244,21 +217,11 @@ export default {
       }
       return name
     },
-    formatBeginTime(val) {
-      this.temp.beginTime = new Date(val).getTime()
-      this.$forceUpdate()
-    },
-    formatEndTime(val) {
-      this.temp.endTime = new Date(val).getTime()
-      this.$forceUpdate()
-    },
-    formatResultEndTime(val) {
-      this.temp.resultsEndTime = new Date(val).getTime()
-      this.$forceUpdate()
-    },
     change() {
       this.$forceUpdate()
     }
   }
 }
+// accept="application/x-zip-compressed, application/x-rar-compressed"
 </script>
+

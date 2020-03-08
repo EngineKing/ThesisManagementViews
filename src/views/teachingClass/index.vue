@@ -2,7 +2,13 @@
   <div class="app-container">
     <div>
       <el-input v-model="listQuery.name" clearable placeholder="请输入部门名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
-      <el-select v-model="listQuery.pDepartment" placeholder="请选择上级部门" clearable style="width: 180px;" class="filter-item">
+      <el-select v-model="listQuery.gradeId" placeholder="请选择年级" clearable style="width: 180px;" class="filter-item">
+        <el-option v-for="item in gradeOptions" :key="item.name" :label="item.name" :value="item.id" />
+      </el-select>
+      <el-select v-model="listQuery.subjectId" placeholder="请选择学科" clearable style="width: 180px;" class="filter-item">
+        <el-option v-for="item in subjectOptions" :key="item.name" :label="item.name" :value="item.id" />
+      </el-select>
+      <el-select v-model="listQuery.departmentId" placeholder="请选择部门" clearable style="width: 180px;" class="filter-item">
         <el-option v-for="item in departmentOptions" :key="item.name" :label="item.name" :value="item.id" />
       </el-select>
       <el-button
@@ -20,6 +26,13 @@
         icon="el-icon-edit"
         @click="handleCreate"
       >新增</el-button>
+      <el-button
+        class="filter-item"
+        style="margin-left: 10px;"
+        type="primary"
+        icon="el-icon-plus"
+        @click="handleAdd"
+      >新增年级</el-button>
     </div>
     <el-table
       v-loading="listLoading"
@@ -34,19 +47,22 @@
       <el-table-column align="center" label="ID" width="95">
         <template slot-scope="scope">{{ scope.$index + (listQuery.page - 1) * listQuery.limit + 1 }}</template>
       </el-table-column>
-      <el-table-column label="名称" width="240" align="center">
+      <el-table-column label="班级名称" width="240" align="center">
         <template slot-scope="scope">{{ scope.row.name }}</template>
       </el-table-column>
-      <el-table-column class-name="status-col" label="上级部门" width="240" align="center">
-        <template slot-scope="scope">{{ scope.row.pDept.name }}</template>
+      <el-table-column class-name="status-col" label="所属年级" width="240" align="center">
+        <template slot-scope="scope">{{ scope.row.grade.name }}</template>
       </el-table-column>
-      <el-table-column class-name="status-col" label="部门描述" min-width="300" align="center">
-        <template slot-scope="scope">{{ scope.row.description }}</template>
+      <el-table-column class-name="status-col" label="所属学科" width="240" align="center">
+        <template slot-scope="scope">{{ scope.row.subject.name }}</template>
       </el-table-column>
-      <el-table-column align="center" label="操作" width="200px">
+      <el-table-column class-name="status-col" label="所属部门" width="240" align="center">
+        <template slot-scope="scope">{{ scope.row.department.name }}</template>
+      </el-table-column>
+      <el-table-column align="center" label="操作" min-width="200px">
         <template slot-scope="scope">
           <el-button type="primary" size="small" @click="handleUpdate(scope.row)">编辑</el-button>
-          <el-button type="danger" size="small" @click="deleteDepartment(scope)">删除</el-button>
+          <el-button type="danger" size="small" @click="deleteTeachingClass(scope)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -68,11 +84,31 @@
         label-width="80px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="部门名称" prop="name">
+        <el-form-item label="班级名称" prop="name">
           <el-input v-model="temp.name" />
         </el-form-item>
-        <el-form-item label="上级部门" prop="pid">
-          <el-select v-model="temp.pid" class="filter-item" placeholder="请选择" @change="change()">
+        <el-form-item label="所属年级" prop="gradeId">
+          <el-select v-model="temp.gradeId" class="filter-item" placeholder="请选择" @change="change()">
+            <el-option
+              v-for="item in gradeOptions"
+              :key="item.name"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="所属学科" prop="subjectId">
+          <el-select v-model="temp.subjectId" class="filter-item" placeholder="请选择" @change="change()">
+            <el-option
+              v-for="item in subjectOptions"
+              :key="item.name"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <!-- <el-form-item label="所属部门" prop="departmentId">
+          <el-select v-model="temp.departmentId" class="filter-item" placeholder="请选择" @change="change()">
             <el-option
               v-for="item in departmentOptions"
               :key="item.name"
@@ -80,10 +116,7 @@
               :value="item.id"
             />
           </el-select>
-        </el-form-item>
-        <el-form-item label="部门描述" prop="description">
-          <el-input v-model="temp.description" />
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item label="状态" prop="status">
           <el-select v-model="temp.status" class="filter-item" placeholder="请选择">
             <el-option
@@ -100,13 +133,32 @@
         <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">确定</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="新增年级" :visible.sync="gradeDialogFormVisible">
+      <el-form
+        ref="dataForm"
+        :rules="rules"
+        :model="temp"
+        label-position="left"
+        label-width="80px"
+        style="width: 400px; margin-left:50px;"
+      >
+        <el-form-item label="年级名称" prop="gradeName">
+          <el-input v-model="gradeName" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="gradeDialogFormVisible = false">取消</el-button>
+        <el-button type="primary" @click="addGradeData()">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import waves from '@/directive/waves' // waves directive
 import Pagination from '@/components/Pagination'
-import { select } from '@/utils/formValidator.js'
+import { text, select } from '@/utils/formValidator.js'
 
 export default {
   components: { Pagination },
@@ -120,19 +172,25 @@ export default {
         page: 1,
         limit: 10,
         name: '',
-        pDepartment: undefined
+        gradeId: undefined,
+        subjectId: undefined,
+        departmentId: undefined
       },
+      gradeOptions: [],
+      subjectOptions: [],
       departmentOptions: [],
       statusOptions: [{ key: 0, value: '正常' }, { key: 1, value: '冻结' }],
       temp: {
         id: 0,
         name: '',
-        pid: undefined,
-        description: '',
+        gradeId: undefined,
+        subjectId: undefined,
         status: 0
       },
       dialogFormVisible: false,
       dialogStatus: '',
+      gradeDialogFormVisible: false,
+      gradeName: '',
       textMap: {
         update: '编辑',
         create: '新增'
@@ -141,7 +199,19 @@ export default {
         name: [
           { required: true, message: '名称不能为空', trigger: 'blur' }
         ],
-        pid: [
+        gradeName: [
+          // { required: true, message: '名称不能为空', trigger: 'blur' }
+          { validator: text, message: '名称不能为空', trigger: 'blur' }
+        ],
+        gradeId: [
+          { required: true, message: '请选择年级', trigger: 'change' },
+          { validator: select, trigger: 'change' }
+        ],
+        subjectId: [
+          { required: true, message: '请选择学科', trigger: 'change' },
+          { validator: select, trigger: 'change' }
+        ],
+        departmentId: [
           { required: true, message: '请选择部门', trigger: 'change' },
           { validator: select, trigger: 'change' }
         ],
@@ -154,13 +224,15 @@ export default {
   },
   created() {
     this.getList()
+    this.getAllGrades()
+    this.getAllSubjects()
     this.getAllDepartments()
   },
   methods: {
     getList() {
       this.axios({
         method: 'post',
-        url: '/department/pageQuery',
+        url: '/teachingClass/pageQuery',
         data: {
           'curPage': this.listQuery.page,
           'limit': this.listQuery.limit
@@ -168,10 +240,36 @@ export default {
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.departmentPage.list
-          this.total = res.departmentPage.total
+          this.list = res.teachingClassPage.list
+          this.total = res.teachingClassPage.total
         } else {
-          this.$message.error('获取部门信息错误')
+          this.$message.error('获取教学班级信息错误')
+        }
+      })
+    },
+    getAllGrades() {
+      this.axios({
+        method: 'post',
+        url: '/grade/getAll'
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.gradeOptions = res.grades
+        } else {
+          this.$message.error('获取年级信息错误')
+        }
+      })
+    },
+    getAllSubjects() {
+      this.axios({
+        method: 'post',
+        url: '/subject/getAll'
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.subjectOptions = res.subjects
+        } else {
+          this.$message.error('获取学科信息错误')
         }
       })
     },
@@ -191,20 +289,22 @@ export default {
     handleFilter() {
       this.axios({
         method: 'post',
-        url: '/department/pageQuery',
+        url: '/teachingClass/pageQuery',
         data: {
           'name': this.listQuery.name,
-          'pid': this.listQuery.pDepartment,
+          'gradeId': this.listQuery.gradeId,
+          'subjectId': this.listQuery.subjectId,
+          'departmentId': this.listQuery.departmentId,
           'curPage': this.listQuery.page,
           'limit': this.listQuery.limit
         }
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.departmentPage.list
-          this.total = res.departmentPage.total
+          this.list = res.teachingClassPage.list
+          this.total = res.teachingClassPage.total
         } else {
-          this.$message.error('获取部门信息错误')
+          this.$message.error('获取教学班级信息错误')
         }
       })
     },
@@ -212,8 +312,8 @@ export default {
       this.temp = {
         id: 0,
         name: '',
-        pid: undefined,
-        description: '',
+        gradeId: undefined,
+        subjectId: undefined,
         status: 0
       }
     },
@@ -227,12 +327,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/department/add',
+            url: '/teachingClass/add',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('新增部门成功')
+              this.$message.success('新增教学班级成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -247,7 +347,9 @@ export default {
     },
     handleUpdate(row) {
       this.temp = Object.assign({}, row) // copy obj
-      this.temp.pid = row.pDept.id
+      this.temp.gradeId = row.grade.id
+      this.temp.subjectId = row.subject.id
+      this.temp.departmentId = row.department.id
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
     },
@@ -256,12 +358,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/department/update',
+            url: '/teachingClass/update',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('编辑部门成功')
+              this.$message.success('编辑教学班级成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -274,7 +376,7 @@ export default {
         }
       })
     },
-    deleteDepartment(scope) {
+    deleteTeachingClass(scope) {
       this.$confirm('是否要继续此操作?', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -282,14 +384,14 @@ export default {
       }).then(() => {
         this.axios({
           method: 'post',
-          url: '/department/delete',
+          url: '/teachingClass/delete',
           data: this.qs.stringify({
             'id': scope.row.id
           })
         }).then((response) => {
           const res = response.data
           if (res.code === 200) {
-            this.$message.success('删除部门成功')
+            this.$message.success('删除教学班级成功')
             this.getList()
           } else {
             this.$message.error(res.msg)
@@ -301,6 +403,30 @@ export default {
     },
     change() {
       this.$forceUpdate()
+    },
+    handleAdd() {
+      this.gradeName = ''
+      this.gradeDialogFormVisible = true
+    },
+    addGradeData() {
+      this.axios({
+        method: 'post',
+        url: '/grade/add',
+        data: {
+          'name': this.gradeName
+        }
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.$message.success('新增年级成功')
+          this.gradeDialogFormVisible = false
+          this.getAllGrades()
+        } else {
+          this.$message.error(res.msg)
+        }
+      }).catch((error) => {
+        console.log(error)
+      })
     }
   }
 }

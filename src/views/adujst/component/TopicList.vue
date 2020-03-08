@@ -44,8 +44,7 @@
       </el-table-column>
       <el-table-column align="center" label="操作" min-width="200px">
         <template slot-scope="scope">
-          <el-button v-if="selectedTopic.topicId === scope.row.id" type="success" size="small" @click="getResult()">查看结果</el-button>
-          <el-button v-if="selectedTopic.topicId !== scope.row.id" type="primary" :disabled="scope.row.selectedNumber === scope.row.optionalNumber || !canSelected" size="small" @click="handleSelect(scope.row)">选择</el-button>
+          <el-button type="primary" :disabled="scope.row.selectedNumber === scope.row.optionalNumber || scope.row.id === topicId" size="small" @click="handleSelect(scope.row)">重新选择</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -59,7 +58,6 @@
     />
   </div>
 </template>
-
 <script>
 import waves from '@/directive/waves' // waves directive
 import Pagination from '@/components/Pagination'
@@ -67,6 +65,16 @@ import Pagination from '@/components/Pagination'
 export default {
   components: { Pagination },
   directives: { waves },
+  props: {
+    studentId: {
+      type: Number,
+      default: 0
+    },
+    topicId: {
+      type: Number,
+      default: 0
+    }
+  },
   data() {
     return {
       list: [],
@@ -80,14 +88,13 @@ export default {
         taskId: undefined
       },
       teacherOptions: [],
-      canSelected: true,
-      selectedTopic: []
+      student: []
     }
   },
   created() {
     this.getList()
     this.getAllTeachers()
-    this.confirmWhetherChoose()
+    this.getStudent()
   },
   methods: {
     getList() {
@@ -121,6 +128,22 @@ export default {
         }
       })
     },
+    getStudent() {
+      this.axios({
+        method: 'post',
+        url: 'student/get',
+        data: this.qs.stringify({
+          'studentId': this.studentId
+        })
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.student = res.student
+        } else {
+          this.$message.error('获取学生信息错误')
+        }
+      })
+    },
     handleFilter() {
       this.axios({
         method: 'post',
@@ -142,7 +165,7 @@ export default {
       })
     },
     handleSelect(row) {
-      this.$confirm('您是否要选择《' + row.name + '》作为您的毕业设计题目', '提示', {
+      this.$confirm('您是否要选择《' + row.name + '》作为' + this.student.name + '新的毕业设计题目', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
@@ -151,52 +174,20 @@ export default {
           method: 'post',
           url: '/studentTopic/add',
           data: {
+            'studentId': this.studentId,
             'topicId': row.id,
-            'isTutorAgree': 2
+            'isTutorAgree': 0
           }
         }).then((response) => {
           const res = response.data
           if (res.code === 200) {
             this.$message.success('选择题目成功')
             this.getList()
-            this.confirmWhetherChoose()
+            this.topicId = row.id
           } else {
             this.$message.error(res.msg)
           }
         })
-      })
-    },
-    confirmWhetherChoose() {
-      this.axios({
-        method: 'get',
-        url: 'studentTopic/getByStudentId'
-      }).then((response) => {
-        const res = response.data
-        if (res.code === 200) {
-          this.canSelected = res.studentTopic === null
-          this.selectedTopic = res.studentTopic
-        } else {
-          this.$message.error('获取选题信息失败')
-        }
-      })
-    },
-    getResult() {
-      this.axios({
-        method: 'get',
-        url: 'studentTopic/getByStudentId'
-      }).then((response) => {
-        const res = response.data
-        if (res.code === 200) {
-          if (res.studentTopic.isTutorAgree === 0) {
-            this.$message.success('已通过')
-          } else if (res.studentTopic.isTutorAgree === 1) {
-            this.$message.error('未通过')
-          } else {
-            this.$message('待审核')
-          }
-        } else {
-          this.$message.error('获取结果信息失败')
-        }
       })
     },
     change() {

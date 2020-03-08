@@ -13,7 +13,7 @@
         v-model="listQuery.type"
         placeholder="请选择类型"
         clearable
-        style="width: 180px;"
+        style="width: 160px;"
         class="filter-item"
       >
         <el-option
@@ -69,21 +69,16 @@
           <span>{{ scope.row.resultsEndTime | formatDate }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="类型" min-width="160" align="center">
+      <el-table-column label="类型" min-width="180" align="center">
         <template slot-scope="scope">{{ getType(scope.row.type) }}</template>
       </el-table-column>
       <el-table-column label="父任务" min-width="160" align="center">
         <template slot-scope="scope">{{ scope.row.pTask.title }}</template>
       </el-table-column>
-      <el-table-column
-        label="操作"
-        align="center"
-        min-width="260"
-        class-name="small-padding fixed-width"
-      >
-        <template slot-scope="{row}">
-          <el-button type="primary" size="small" @click="handleDownload(row)">下载附件</el-button>
-          <el-button type="success" size="small" @click="handleResult(row)">结果处理</el-button>
+      <el-table-column align="center" label="操作" min-width="250px">
+        <template slot-scope="scope">
+          <el-button type="primary" size="small" @click="importTutor(scope.row)">关联导师</el-button>
+          <el-button type="success" size="small" @click="importStudent(scope.row)">关联学生</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -96,8 +91,13 @@
       @pagination="handleFilter"
     />
 
-    <div :if="dialogResultVisible">
-      <el-dialog title="处理结果" :visible.sync="dialogResultVisible" width="80%">
+    <div v-if="dialogTutorVisible">
+      <el-dialog title="导师信息" :visible.sync="dialogTutorVisible" width="80%">
+        <TutorList :value="taskId" />
+      </el-dialog>
+    </div>
+    <div v-if="dialogStudentVisible">
+      <el-dialog title="学生信息" :visible.sync="dialogStudentVisible" width="80%">
         <StudentList :value="taskId" />
       </el-dialog>
     </div>
@@ -107,10 +107,11 @@
 <script>
 import waves from '@/directive/waves' // waves directive
 import Pagination from '@/components/Pagination'
+import TutorList from './components/TutorList'
 import StudentList from './components/StudentList'
 
 export default {
-  components: { Pagination, StudentList },
+  components: { Pagination, TutorList, StudentList },
   directives: { waves },
   filters: {
     formatDate(date) {
@@ -135,6 +136,7 @@ export default {
         title: '',
         type: undefined
       },
+      pTaskOptions: [],
       typeOptions: [
         { key: 0, value: '毕业设计任务' },
         { key: 1, value: '开题报告任务' },
@@ -144,7 +146,9 @@ export default {
         { key: 5, value: '论文答辩任务' },
         { key: 6, value: '答辩后期任务' }
       ],
-      dialogResultVisible: false,
+      statusOptions: [{ key: 0, value: '正常' }, { key: 1, value: '冻结' }],
+      dialogTutorVisible: false,
+      dialogStudentVisible: false,
       taskId: 0
     }
   },
@@ -199,30 +203,12 @@ export default {
         }
       })
     },
-    handleDownload(row) {
-      var canDownLoad = false
-      this.axios({
-        method: 'post',
-        url: '/task/getAnnex',
-        data: this.qs.stringify({
-          'taskId': row.id
-        })
-      }).then((response) => {
-        const res = response.data
-        if (res.code === 200) {
-          canDownLoad = res.annex === null
-        } else {
-          this.$message.error('获取附件信息失败')
-        }
-      })
-      if (canDownLoad) {
-        window.location.href = 'http://127.0.0.1:8080/task/download?taskId=' + row.task.id
-      } else {
-        this.$message.error('暂无附件')
-      }
+    importTutor(row) {
+      this.dialogTutorVisible = true
+      this.taskId = row.id
     },
-    handleResult(row) {
-      this.dialogResultVisible = true
+    importStudent(row) {
+      this.dialogStudentVisible = true
       this.taskId = row.id
     },
     getType(type) {

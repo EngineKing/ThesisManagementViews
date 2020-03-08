@@ -134,25 +134,25 @@ export const constantRoutes = [
       {
         path: 'subject',
         name: '学科管理',
-        component: () => import('@/views/tree/index'),
+        component: () => import('@/views/subject/index'),
         meta: { title: '学科管理', icon: 'subject' }
       },
       {
         path: 'class',
         name: '班级管理',
-        component: () => import('@/views/tree/index'),
+        component: () => import('@/views/teachingClass/index'),
         meta: { title: '班级管理', icon: 'class' }
       },
       {
         path: 'tutor',
         name: '导师管理',
-        component: () => import('@/views/tree/index'),
+        component: () => import('@/views/tutor/index'),
         meta: { title: '导师管理', icon: 'tutor' }
       },
       {
         path: 'student',
         name: '学生管理',
-        component: () => import('@/views/tree/index'),
+        component: () => import('@/views/student/index'),
         meta: { title: '学生管理', icon: 'student' }
       }
     ]
@@ -174,27 +174,12 @@ export const constantRoutes = [
   {
     path: '/submit',
     component: Layout,
-    redirect: '/submit/paper',
-    name: '我的提交',
-    meta: { title: '我的提交', icon: 'submit' },
     children: [
       {
-        path: 'paper',
-        name: '论文提交',
-        component: () => import('@/views/paper/index'),
-        meta: { title: '论文提交', icon: 'paper' }
-      },
-      {
-        path: 'plan',
-        name: '实验计划提交',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '实验计划提交', icon: 'plan' }
-      },
-      {
-        path: 'project',
-        name: '实验项目提交',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '实验项目提交', icon: 'project' }
+        path: 'index',
+        name: '任务提交',
+        component: () => import('@/views/submit/index'),
+        meta: { title: '任务提交', icon: 'submit' }
       }
     ]
   },
@@ -211,74 +196,71 @@ export const constantRoutes = [
       }
     ]
   },
-
   {
     path: '/check',
     component: Layout,
-    redirect: '/check/paper',
-    name: '我的审核',
-    meta: { title: '我的审核', icon: 'check' },
     children: [
       {
-        path: 'paper',
-        name: '论文审核',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '论文审核', icon: 'paper' }
-      },
-      {
-        path: 'plan',
-        name: '实验计划审核',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '实验计划审核', icon: 'plan' }
-      },
-      {
-        path: 'project',
-        name: '实验项目审核',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '实验项目审核', icon: 'project' }
+        path: 'index',
+        name: '任务审核',
+        component: () => import('@/views/check/index'),
+        meta: { title: '任务审核', icon: 'check' }
       }
     ]
   },
 
   {
-    path: '/topicAdujst',
+    path: '/dataImport',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: '数据导入',
+        component: () => import('@/views/dataImport/index'),
+        meta: { title: '数据导入', icon: 'import' }
+      }
+    ]
+  },
+
+  {
+    path: '/adujst',
     component: Layout,
     children: [
       {
         path: 'index',
         name: '题目调整',
-        component: () => import('@/views/form/index'),
+        component: () => import('@/views/adujst/index'),
         meta: { title: '题目调整', icon: 'form' }
       }
     ]
   },
 
   {
-    path: '/resultUpload',
+    path: '/result',
     component: Layout,
     children: [
       {
         path: 'index',
-        name: '答辩结果上传',
+        name: '任务结果上传',
         component: () => import('@/views/result/index'),
-        meta: { title: '答辩结果上传', icon: 'upload' }
+        meta: { title: '任务结果上传', icon: 'upload' }
       }
     ]
   },
   {
-    path: '/expertManage',
+    path: '/expert',
     component: Layout,
     children: [
       {
         path: 'index',
         name: '专家组管理',
-        component: () => import('@/views/form/index'),
+        component: () => import('@/views/expert/index'),
         meta: { title: '专家组管理', icon: 'expert' }
       }
     ]
   },
   {
-    path: '/taskManage',
+    path: '/task',
     component: Layout,
     children: [
       {
@@ -286,6 +268,18 @@ export const constantRoutes = [
         name: '任务管理',
         component: () => import('@/views/task/index'),
         meta: { title: '任务管理', icon: 'task' }
+      }
+    ]
+  },
+  {
+    path: '/test',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'demo',
+        component: () => import('@/views/demo/index'),
+        meta: { title: 'demo', icon: 'task' }
       }
     ]
   },
