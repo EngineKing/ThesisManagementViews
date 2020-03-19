@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <div>
-      <el-input v-model="listQuery.name" clearable placeholder="请输入角色名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.name" clearable placeholder="请输入菜单名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
       <el-button
         v-waves
         class="filter-item"
@@ -28,19 +28,24 @@
       highlight-current-row
     >
       <el-table-column type="selection" align="center" />
-      <el-table-column align="center" label="ID" width="95">
+      <el-table-column align="center" label="ID" min-width="95">
         <template slot-scope="scope">{{ scope.$index + (listQuery.page - 1) * listQuery.limit + 1 }}</template>
       </el-table-column>
-      <el-table-column label="角色名称" width="240" align="center">
+      <el-table-column label="名称" min-width="240" align="center">
         <template slot-scope="scope">{{ scope.row.name }}</template>
       </el-table-column>
-      <el-table-column class-name="status-col" label="角色描述" min-width="300" align="center">
-        <template slot-scope="scope">{{ scope.row.description }}</template>
+      <el-table-column label="上级菜单" min-width="240" align="center">
+        <template slot-scope="scope">{{ getMenuName(scope.row.pmenu) }}</template>
       </el-table-column>
-      <el-table-column align="center" label="操作" min-width="200px">
+      <el-table-column label="类型" min-width="200" align="center">
+        <template slot-scope="scope">{{ getType(scope.row.type) }}</template>
+      </el-table-column>
+      <el-table-column class-name="status-col" label="备注" min-width="260" align="center">
+        <template slot-scope="scope">{{ scope.row.remark }}</template>
+      </el-table-column>
+      <el-table-column align="center" label="操作" min-width="260px">
         <template slot-scope="scope">
           <el-button type="primary" size="small" @click="handleUpdate(scope.row)">编辑</el-button>
-          <el-button type="success" size="small" @click="handleAssign(scope.row)">分配权限</el-button>
           <el-button type="danger" size="small" @click="deleteRole(scope)">删除</el-button>
         </template>
       </el-table-column>
@@ -63,11 +68,50 @@
         label-width="80px"
         style="width: 400px; margin-left:50px;"
       >
-        <el-form-item label="角色名称" prop="name">
+        <el-form-item label="名称" prop="name" placeholder="请输入菜单名称">
           <el-input v-model="temp.name" />
         </el-form-item>
-        <el-form-item label="角色描述" prop="description">
-          <el-input v-model="temp.description" />
+        <el-form-item label="上级菜单" prop="pid">
+          <el-select v-model="temp.pid" class="filter-item" placeholder="请选择">
+            <el-option
+              v-for="item in menuOptions"
+              :key="item.name"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="路径" prop="url" placeholder="请输入菜单路径">
+          <el-input v-model="temp.url" />
+        </el-form-item>
+        <el-form-item label="权限" prop="permission" placeholder="请输入菜单权限">
+          <el-input v-model="temp.permission" />
+        </el-form-item>
+        <el-form-item label="排序" prop="orderNo" placeholder="请输入菜单排序">
+          <el-input v-model="temp.orderNo" />
+        </el-form-item>
+        <el-form-item label="类型" prop="type">
+          <el-select v-model="temp.type" class="filter-item" placeholder="请选择">
+            <el-option
+              v-for="item in typeOptions"
+              :key="item.value"
+              :label="item.value"
+              :value="item.key"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="说明" prop="remark" placeholder="请输入菜单说明">
+          <el-input v-model="temp.remark" />
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-select v-model="temp.status" class="filter-item" placeholder="请选择">
+            <el-option
+              v-for="item in statusOptions"
+              :key="item.value"
+              :label="item.value"
+              :value="item.key"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -81,6 +125,7 @@
 <script>
 import waves from '@/directive/waves' // waves directive
 import Pagination from '@/components/Pagination'
+import { select } from '@/utils/formValidator.js'
 
 export default {
   components: { Pagination },
@@ -95,10 +140,18 @@ export default {
         limit: 10,
         name: ''
       },
+      typeOptions: [{ key: 0, value: '菜单' }, { key: 1, value: '接口' }],
+      statusOptions: [{ key: 0, value: '正常' }, { key: 1, value: '冻结' }],
+      menuOptions: [],
       temp: {
-        id: 0,
         name: '',
-        description: ''
+        pid: undefined,
+        url: '',
+        permission: '',
+        orderNo: '',
+        type: '',
+        remark: '',
+        status: 0
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -109,6 +162,24 @@ export default {
       rules: {
         name: [
           { required: true, message: '名称不能为空', trigger: 'blur' }
+        ],
+        pid: [
+          { required: true, message: '上级菜单不能为空', trigger: 'change' },
+          { validator: select, trigger: 'change' }
+        ],
+        url: [
+          { required: true, message: '路径不能为空', trigger: 'blur' }
+        ],
+        orderNo: [
+          { required: true, message: '排序不能为空', trigger: 'blur' }
+        ],
+        type: [
+          { required: true, message: '类型不能为空', trigger: 'change' },
+          { validator: select, trigger: 'change' }
+        ],
+        status: [
+          { required: true, message: '状态不能为空', trigger: 'change' },
+          { validator: select, trigger: 'change' }
         ]
       }
     }
@@ -120,7 +191,7 @@ export default {
     getList() {
       this.axios({
         method: 'post',
-        url: '/role/pageQuery',
+        url: '/menu/pageQuery',
         data: {
           'curPage': this.listQuery.page,
           'limit': this.listQuery.limit
@@ -128,17 +199,30 @@ export default {
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.rolePage.list
-          this.total = res.rolePage.total
+          this.list = res.menuPage.list
+          this.total = res.menuPage.total
         } else {
-          this.$message.error('获取角色信息错误')
+          this.$message.error('获取菜单信息错误')
+        }
+      })
+    },
+    getMenus() {
+      this.axios({
+        method: 'get',
+        url: '/menu/getAll'
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.menuOptions = res.menus
+        } else {
+          this.$message.error('获取菜单信息错误')
         }
       })
     },
     handleFilter() {
       this.axios({
         method: 'post',
-        url: '/role/pageQuery',
+        url: '/menu/pageQuery',
         data: {
           'name': this.listQuery.name,
           'curPage': this.listQuery.page,
@@ -147,8 +231,8 @@ export default {
       }).then((response) => {
         const res = response.data
         if (res.code === 200) {
-          this.list = res.rolePage.list
-          this.total = res.rolePage.total
+          this.list = res.menuPage.list
+          this.total = res.menuPage.total
         } else {
           this.$message.error('获取角色信息错误')
         }
@@ -156,12 +240,18 @@ export default {
     },
     resetTemp() {
       this.temp = {
-        id: 0,
         name: '',
-        description: ''
+        pid: undefined,
+        url: '',
+        permission: '',
+        orderNo: '',
+        type: '',
+        remark: '',
+        status: 0
       }
     },
     handleCreate() {
+      this.getMenus()
       this.resetTemp()
       this.dialogStatus = 'create'
       this.dialogFormVisible = true
@@ -171,12 +261,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/role/add',
+            url: '/menu/add',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('新增角色成功')
+              this.$message.success('新增菜单成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -189,7 +279,9 @@ export default {
       })
     },
     handleUpdate(row) {
+      this.getMenus()
       this.temp = Object.assign({}, row) // copy obj
+      this.temp.pid = row.pmenu.id
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
     },
@@ -198,12 +290,12 @@ export default {
         if (valid) {
           this.axios({
             method: 'post',
-            url: '/role/update',
+            url: '/menu/update',
             data: this.temp
           }).then((response) => {
             const res = response.data
             if (res.code === 200) {
-              this.$message.success('编辑角色成功')
+              this.$message.success('编辑菜单成功')
               this.dialogFormVisible = false
               this.getList()
             } else {
@@ -223,14 +315,14 @@ export default {
       }).then(() => {
         this.axios({
           method: 'post',
-          url: '/role/delete',
+          url: '/menu/delete',
           data: this.qs.stringify({
             'id': scope.row.id
           })
         }).then((response) => {
           const res = response.data
           if (res.code === 200) {
-            this.$message.success('删除角色成功')
+            this.$message.success('删除菜单成功')
             this.getList()
           } else {
             this.$message.error(res.msg)
@@ -239,6 +331,12 @@ export default {
           console.log(error)
         })
       })
+    },
+    getMenuName(pmenu) {
+      return pmenu === null ? '无' : pmenu.name
+    },
+    getType(type) {
+      return type === 0 ? '菜单' : '接口'
     },
     change() {
       this.$forceUpdate()

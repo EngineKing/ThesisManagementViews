@@ -1,7 +1,14 @@
 <template>
   <div class="app-container">
     <div>
-      <el-input v-model="listQuery.name" clearable placeholder="请输入角色名称" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input
+        v-model="listQuery.name"
+        clearable
+        placeholder="请输入角色名称"
+        style="width: 200px;"
+        class="filter-item"
+        @keyup.enter.native="handleFilter"
+      />
       <el-button
         v-waves
         class="filter-item"
@@ -75,6 +82,24 @@
         <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">确定</el-button>
       </div>
     </el-dialog>
+
+    <div :if="dialogTreeVisible">
+      <el-dialog title="分配权限" :visible.sync="dialogTreeVisible">
+        <el-tree
+          ref="tree"
+          :data="menus"
+          show-checkbox
+          node-key="id"
+          :default-expand-all="true"
+          :default-checked-keys="checkedMenus"
+          :props="defaultProps"
+        />
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="dialogTreeVisible = false">取消</el-button>
+          <el-button type="primary" @click="assignData()">确定</el-button>
+        </div>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -106,6 +131,14 @@ export default {
         update: '编辑',
         create: '新增'
       },
+      dialogTreeVisible: false,
+      defaultProps: {
+        label: 'name',
+        children: 'children'
+      },
+      menus: [],
+      checkedMenus: [],
+      roleId: undefined,
       rules: {
         name: [
           { required: true, message: '名称不能为空', trigger: 'blur' }
@@ -212,6 +245,59 @@ export default {
           }).catch((error) => {
             console.log(error)
           })
+        }
+      })
+    },
+    handleAssign(row) {
+      this.getMenus()
+      this.getCheckedMenus(row)
+      this.dialogTreeVisible = true
+      this.roleId = row.id
+    },
+    getMenus() {
+      this.axios({
+        method: 'get',
+        url: 'menu/listTree'
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.menus = res.menuVOS
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    getCheckedMenus(row) {
+      this.axios({
+        method: 'post',
+        url: '/role/getPermissions',
+        data: this.qs.stringify({
+          'id': row.id
+        })
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.checkedMenus = res.menuIds
+        } else {
+          this.$message.error(res.msg)
+        }
+      })
+    },
+    assignData() {
+      this.axios({
+        method: 'post',
+        url: '/role/assign',
+        data: {
+          'roleId': this.roleId,
+          'menuIds': this.$refs.tree.getCheckedKeys()
+        }
+      }).then((response) => {
+        const res = response.data
+        if (res.code === 200) {
+          this.$message.success('权限分配成功')
+          this.dialogTreeVisible = false
+        } else {
+          this.$message.error('权限分配失败')
         }
       })
     },
