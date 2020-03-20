@@ -1,4 +1,5 @@
 import router from './router'
+import { resetRouter2 } from './router'
 import store from './store'
 import { Message } from 'element-ui'
 import NProgress from 'nprogress' // progress bar
@@ -19,6 +20,7 @@ router.beforeEach(async(to, from, next) => {
 
   // determine whether the user has logged in
   const hasToken = getToken()
+  console.log('hasToken:' + hasToken)
 
   if (hasToken) {
     if (to.path === '/login') {
@@ -27,14 +29,23 @@ router.beforeEach(async(to, from, next) => {
       NProgress.done()
     } else {
       const hasGetUserInfo = store.getters.name
+      console.log('username:' + hasGetUserInfo)
       if (hasGetUserInfo) {
         next()
       } else {
         try {
           // get user info
-          await store.dispatch('user/getInfo')
-
-          next()
+          const urls = await store.dispatch('user/getInfo')
+          // const accessRoutes = await store.dispatch('user/generateRoutes', urls)
+          await store.dispatch('user/generateRoutes', urls)
+          // console.log(accessRoutes)
+          console.log(store.getters.permission_routes)
+          // router.addRoutes(accessRoutes)
+          resetRouter2(store.getters.permission_routes)
+          // console.log('currentRoute:')
+          // next()
+          // console.log(router.)
+          next({ ...to, replace: true })
         } catch (error) {
           // remove token and go to login page to re-login
           await store.dispatch('user/resetToken')
@@ -43,6 +54,21 @@ router.beforeEach(async(to, from, next) => {
           NProgress.done()
         }
       }
+      // try {
+      //   // get user info
+      //   const urls = await store.dispatch('user/getInfo')
+      //   const accessRoutes = await store.dispatch('user/generateRoutes', urls)
+      //   console.log(accessRoutes)
+      //   router.addRoutes(accessRoutes)
+      //   // next({ ...to, replace: true })
+      //   next()
+      // } catch (error) {
+      //   // remove token and go to login page to re-login
+      //   await store.dispatch('user/resetToken')
+      //   Message.error(error || 'Has Error')
+      //   next(`/login?redirect=${to.path}`)
+      //   NProgress.done()
+      // }
     }
   } else {
     /* has no token*/

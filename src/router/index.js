@@ -41,19 +41,19 @@ export const constantRoutes = [
     path: '/404',
     component: () => import('@/views/404'),
     hidden: true
-  },
+  }
 
-  {
-    path: '/',
-    component: Layout,
-    redirect: '/dashboard',
-    children: [{
-      path: 'dashboard',
-      name: '工作平台',
-      component: () => import('@/views/dashboard/index'),
-      meta: { title: '工作平台', icon: 'dashboard' }
-    }]
-  },
+  // {
+  //   path: '/',
+  //   component: Layout,
+  //   redirect: '/dashboard',
+  //   children: [{
+  //     path: 'dashboard',
+  //     name: '工作平台',
+  //     component: () => import('@/views/dashboard/index'),
+  //     meta: { title: '工作平台', icon: 'dashboard', url: '/dashboard/index' }
+  //   }]
+  // }
 
   // {
   //   path: '/example',
@@ -90,36 +90,53 @@ export const constantRoutes = [
   //   ]
   // },
 
+  // 404 page must be placed at the end !!!
+  // { path: '*', redirect: '/404', hidden: true }
+]
+
+export const asyncRoutes = [
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/dashboard',
+    children: [{
+      path: 'dashboard',
+      name: '工作平台',
+      component: () => import('@/views/dashboard/index'),
+      meta: { title: '工作平台', icon: 'dashboard', url: '/dashboard/index' }
+    }]
+  },
+
   {
     path: '/system',
     component: Layout,
     redirect: '/system/user',
     name: '系统管理',
-    meta: { title: '系统管理', icon: 'system' },
+    meta: { title: '系统管理', icon: 'system', url: '/system/index' },
     children: [
       {
         path: 'user',
         name: '用户管理',
         component: () => import('@/views/user/index'),
-        meta: { title: '用户管理', icon: 'user' }
+        meta: { title: '用户管理', icon: 'user', url: '/user/index' }
       },
       {
         path: 'department',
         name: '部门管理',
         component: () => import('@/views/department/index'),
-        meta: { title: '部门管理', icon: 'department' }
+        meta: { title: '部门管理', icon: 'department', url: '/department/index' }
       },
       {
         path: 'role',
         name: '角色管理',
         component: () => import('@/views/role/index'),
-        meta: { title: '角色管理', icon: 'role' }
+        meta: { title: '角色管理', icon: 'role', url: '/role/index' }
       },
       {
         path: 'menu',
         name: '菜单管理',
         component: () => import('@/views/menu/index'),
-        meta: { title: '菜单管理', icon: 'menu' }
+        meta: { title: '菜单管理', icon: 'menu', url: '/menu/index' }
       }
     ]
   },
@@ -129,163 +146,150 @@ export const constantRoutes = [
     component: Layout,
     redirect: '/initialize/subject',
     name: '初始化管理',
-    meta: { title: '初始化管理', icon: 'initial' },
+    meta: { title: '初始化管理', icon: 'initial', url: '/initialize/index' },
     children: [
       {
         path: 'subject',
         name: '学科管理',
         component: () => import('@/views/subject/index'),
-        meta: { title: '学科管理', icon: 'subject' }
+        meta: { title: '学科管理', icon: 'subject', url: '/subject/index' }
       },
       {
         path: 'class',
         name: '班级管理',
         component: () => import('@/views/teachingClass/index'),
-        meta: { title: '班级管理', icon: 'class' }
+        meta: { title: '班级管理', icon: 'class', url: '/class/index' }
       },
       {
         path: 'tutor',
         name: '导师管理',
         component: () => import('@/views/tutor/index'),
-        meta: { title: '导师管理', icon: 'tutor' }
+        meta: { title: '导师管理', icon: 'tutor', url: '/tutor/index' }
       },
       {
         path: 'student',
         name: '学生管理',
         component: () => import('@/views/student/index'),
-        meta: { title: '学生管理', icon: 'student' }
+        meta: { title: '学生管理', icon: 'student', url: '/student/index' }
       }
     ]
-  },
+  }
 
-  {
-    path: '/topicSelect',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '学生选题',
-        component: () => import('@/views/select/index'),
-        meta: { title: '学生选题', icon: 'form' }
-      }
-    ]
-  },
+  // { path: '*', redirect: '/404', hidden: true }
 
-  {
-    path: '/submit',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '任务提交',
-        component: () => import('@/views/submit/index'),
-        meta: { title: '任务提交', icon: 'submit' }
-      }
-    ]
-  },
+  // {
+  //   path: '/topicSelect',
+  //   component: Layout,
+  //   meta: { title: '学生选题', icon: 'form', url: '/topicSelect/index' },
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '学生选题',
+  //       component: () => import('@/views/select/index')
+  //     }
+  //   ]
+  // }
 
-  {
-    path: '/topicManage',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '题目管理',
-        component: () => import('@/views/topic/index'),
-        meta: { title: '题目管理', icon: 'form' }
-      }
-    ]
-  },
-  {
-    path: '/check',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '任务审核',
-        component: () => import('@/views/check/index'),
-        meta: { title: '任务审核', icon: 'check' }
-      }
-    ]
-  },
+  // {
+  //   path: '/submit',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '任务提交',
+  //       component: () => import('@/views/submit/index'),
+  //       meta: { title: '任务提交', icon: 'submit', url: '/submit/index' }
+  //     }
+  //   ]
+  // },
 
-  {
-    path: '/dataImport',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '数据导入',
-        component: () => import('@/views/dataImport/index'),
-        meta: { title: '数据导入', icon: 'import' }
-      }
-    ]
-  },
+  // {
+  //   path: '/topicManage',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '题目管理',
+  //       component: () => import('@/views/topic/index'),
+  //       meta: { title: '题目管理', icon: 'form', url: '/topicManage/index' }
+  //     }
+  //   ]
+  // },
+  // {
+  //   path: '/check',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '任务审核',
+  //       component: () => import('@/views/check/index'),
+  //       meta: { title: '任务审核', icon: 'check', url: '/check/index' }
+  //     }
+  //   ]
+  // },
 
-  {
-    path: '/adujst',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '题目调整',
-        component: () => import('@/views/adujst/index'),
-        meta: { title: '题目调整', icon: 'form' }
-      }
-    ]
-  },
+  // {
+  //   path: '/dataImport',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '数据导入',
+  //       component: () => import('@/views/dataImport/index'),
+  //       meta: { title: '数据导入', icon: 'import', url: '/dataImport/index' }
+  //     }
+  //   ]
+  // },
 
-  {
-    path: '/result',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '任务结果上传',
-        component: () => import('@/views/result/index'),
-        meta: { title: '任务结果上传', icon: 'upload' }
-      }
-    ]
-  },
-  {
-    path: '/expert',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '专家组管理',
-        component: () => import('@/views/expert/index'),
-        meta: { title: '专家组管理', icon: 'expert' }
-      }
-    ]
-  },
-  {
-    path: '/task',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: '任务管理',
-        component: () => import('@/views/task/index'),
-        meta: { title: '任务管理', icon: 'task' }
-      }
-    ]
-  },
-  {
-    path: '/test',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'demo',
-        component: () => import('@/views/demo/index'),
-        meta: { title: 'demo', icon: 'task' }
-      }
-    ]
-  },
+  // {
+  //   path: '/adujst',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '题目调整',
+  //       component: () => import('@/views/adujst/index'),
+  //       meta: { title: '题目调整', icon: 'form', url: '/adujst/index' }
+  //     }
+  //   ]
+  // },
 
-  // 404 page must be placed at the end !!!
-  { path: '*', redirect: '/404', hidden: true }
+  // {
+  //   path: '/result',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '任务结果上传',
+  //       component: () => import('@/views/result/index'),
+  //       meta: { title: '任务结果上传', icon: 'upload', url: '/result/index' }
+  //     }
+  //   ]
+  // },
+  // {
+  //   path: '/expert',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '专家组管理',
+  //       component: () => import('@/views/expert/index'),
+  //       meta: { title: '专家组管理', icon: 'expert', url: '/expert/index' }
+  //     }
+  //   ]
+  // },
+  // {
+  //   path: '/task',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: '任务管理',
+  //       component: () => import('@/views/task/index'),
+  //       meta: { title: '任务管理', icon: 'task', url: '/task/index' }
+  //     }
+  //   ]
+  // }
 ]
 
 const createRouter = () => new Router({
@@ -300,6 +304,15 @@ const router = createRouter()
 export function resetRouter() {
   const newRouter = createRouter()
   router.matcher = newRouter.matcher // reset router
+}
+
+export function resetRouter2(routes) {
+  alert(1)
+  const newRouter = new Router({
+    scrollBehavior: () => ({ y: 0 }),
+    routes: asyncRoutes
+  })
+  router.matcher = newRouter.matcher
 }
 
 export default router
